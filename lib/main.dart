@@ -2,9 +2,11 @@
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,6 +63,50 @@ class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn googleSignIn = GoogleSignIn();
+  final FirebaseDynamicLinks dynamicLinks = FirebaseDynamicLinks.instance;
+
+  Future<UserCredential> signInWithGoogle() async {
+    final GoogleSignInAccount? googleSignInAccount =
+        await googleSignIn.signIn();
+    final GoogleSignInAuthentication googleSignInAuthentication =
+        await googleSignInAccount!.authentication;
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleSignInAuthentication.accessToken,
+      idToken: googleSignInAuthentication.idToken,
+    );
+    return await _auth.signInWithCredential(credential);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    FirebaseDynamicLinks.instance.onLink
+        .listen((PendingDynamicLinkData data) async {
+      final Uri? uri = data?.link;
+      if (uri != null) {
+        try {
+          if (FirebaseAuth.instance.isSignInWithEmailLink(uri.toString())) {
+            final String email = _emailController.text;
+            await FirebaseAuth.instance.signInWithEmailLink(
+              email: email,
+              emailLink: uri.toString(),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content:
+                  Text("Здравствуйте, ${FirebaseAuth.instance.currentUser}"),
+            ));
+          }
+        } catch (e) {
+          print(e);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Ошибка входа'),
+          ));
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,42 +186,61 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: const Text('Authorize anonimously')),
               ElevatedButton(
                   onPressed: () async {
+                    String email = '';
+                    email = _emailController.text;
                     try {
                       await FirebaseAuth.instance.sendSignInLinkToEmail(
-                          email: _emailController.text,
+                          email: email,
                           actionCodeSettings: ActionCodeSettings(
                             url: 'https://firebaza.page.link/kPAc',
                             androidPackageName: 'com.example.firebaza',
                             handleCodeInApp: true,
                             androidInstallApp: true,
                           ));
-                      if (FirebaseAuth.instance.isSignInWithEmailLink(
-                          'https://firebaza.page.link/kPAc')) {
-                        try {
-                          await FirebaseAuth.instance.signInWithEmailLink(
-                              email: _emailController.text,
-                              emailLink: "https://firebaza.page.link/kPAc");
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(
-                              "Здравствуйте, ${FirebaseAuth.instance.currentUser}",
-                            ),
-                          ));
-                        } on FirebaseAuthException catch (e) {
-                          print(e);
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
-                            content: Text("Ошибка!"),
-                          ));
-                        }
-                      }
+
+                      // if (FirebaseAuth.instance.isSignInWithEmailLink(
+                      //     'https://firebaza.page.link/kPAc')) {
+                      //   try {
+                      //     await FirebaseAuth.instance.signInWithEmailLink(
+                      //         email: email,
+                      //         emailLink: "https://firebaza.page.link/kPAc");
+                      //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: Text(
+                      //         "Здравствуйте, ${FirebaseAuth.instance.currentUser}",
+                      //       ),
+                      //     ));
+                      //   } on FirebaseAuthException catch (e) {
+                      //     print(e);
+                      //     ScaffoldMessenger.of(context)
+                      //         .showSnackBar(const SnackBar(
+                      //       content: Text("Ошибка!"),
+                      //     ));
+                      //   }
+                      // }
                     } on FirebaseAuthException catch (e) {
                       print(e);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(e.code),
                       ));
-                    } 
+                    }
                   },
-                  child: const Text("Auth with link"))
+                  child: const Text("Auth with link")),
+              ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      signInWithGoogle().then((value) => {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(
+                                    "Здравствуйте, ${FirebaseAuth.instance.currentUser}")))
+                          });
+                      UserCredential userCredential = await signInWithGoogle();
+                      User user = userCredential.user!;
+                    } on FirebaseAuthException catch (e) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(e.code)));
+                    }
+                  },
+                  child: Text("Google Sign-in"))
             ],
           ),
         ),
