@@ -2,6 +2,8 @@
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:firebaza/mainview.dart';
+import 'package:firebaza/registration.dart';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,8 +38,8 @@ Future<void> createNewUser() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
+  const MyApp({Key? key}) : super(key: key);
+static const routeName = '/signin';
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,11 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      routes:         {
+      MyApp.routeName: (context) =>  const MyApp(),
+        SignUp.routeName: (context) =>  const SignUp(),
+        mainview.routeName: (context) => mainview(),
+        }
     );
   }
 }
@@ -156,6 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         email: _emailController.text,
                         password: _passwordController.text,
                       );
+                      Navigator.pushNamed(context, mainview.routeName);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(
                               "Здравствуйте, ${FirebaseAuth.instance.currentUser}")));
@@ -240,7 +248,10 @@ class _MyHomePageState extends State<MyHomePage> {
                           .showSnackBar(SnackBar(content: Text(e.code)));
                     }
                   },
-                  child: Text("Google Sign-in"))
+                  child: Text("Google Sign-in")),
+                  ElevatedButton(onPressed: () async {
+                    Navigator.pushNamed(context, SignUp.routeName);
+                  }, child: Text("Регистрация"))
             ],
           ),
         ),

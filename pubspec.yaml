@@ -41,6 +41,8 @@ dependencies:
   firebase_analytics: ^10.1.4
   google_sign_in: ^6.0.1
   firebase_dynamic_links: ^5.0.15
+  conduit: ^4.1.6
+  cloud_firestore: 
 
 dev_dependencies:
   flutter_test:
